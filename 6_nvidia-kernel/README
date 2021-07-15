@@ -1,0 +1,5 @@
+This is the kernel-module needed by the proprietary binary nvidia driver.
+
+To build the package for a kernel different from the running one,
+start the script setting the KERNEL variable as in
+    KERNEL=2.6.38.8 ./nvidia-kernel.SlackBuild

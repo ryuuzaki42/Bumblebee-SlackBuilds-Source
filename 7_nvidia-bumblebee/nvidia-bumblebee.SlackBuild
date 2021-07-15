@@ -1,0 +1,341 @@
+#!/bin/sh
+
+# Slackware build script for nvidia-bumblebee
+
+# Copyright 2011-2013 James Geboski <jgeboski@gmail.com>
+# Copyright 2014      Nick Blizzard <nickblizzard1776@gmail.com>
+# All rights reserved.
+#
+# Redistribution and use of this script, with or without modification, is
+# permitted provided that the following conditions are met:
+#
+# 1. Redistributions of this script must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+#
+#  THIS SOFTWARE IS PROVIDED BY THE AUTHOR "AS IS" AND ANY EXPRESS OR IMPLIED
+#  WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+#  MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO
+#  EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+#  PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+#  OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+#  WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+#  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+#  ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+PRGNAM=nvidia-bumblebee
+VERSION=${VERSION:-$(echo NVIDIA-Linux-*.run* | rev | cut -f 2- -d . | cut -f 1 -d - | rev)}
+BUILD=${BUILD:-1}
+TAG=${TAG:-_bbsb}
+echo $VERSION
+COMPAT32=${COMPAT32:-no}
+
+if [ -z "$ARCH" ]; then
+  case "$( uname -m )" in
+    i?86) ARCH=i586 ;;
+    arm*) ARCH=arm ;;
+       *) ARCH=$( uname -m ) ;;
+  esac
+fi
+
+CWD=$(pwd)
+TMP=${TMP:-/tmp/bbsb}
+PKG=$TMP/package-$PRGNAM
+OUTPUT=${OUTPUT:-/tmp}
+
+if [ "$ARCH" = "i586" ]; then
+  SLKCFLAGS="-O2 -march=i586 -mtune=i686"
+  LIBDIRSUFFIX=""
+  NTARGET="x86"
+elif [ "$ARCH" = "i686" ]; then
+  SLKCFLAGS="-O2 -march=i686 -mtune=i686"
+  LIBDIRSUFFIX=""
+  NTARGET="x86"
+elif [ "$ARCH" = "x86_64" ]; then
+  SLKCFLAGS="-O2 -fPIC"
+  LIBDIRSUFFIX="64"
+  NTARGET="x86_64"
+else
+  SLKCFLAGS="-O2"
+  LIBDIRSUFFIX=""
+  NTARGET="x86"
+fi
+
+set -e
+
+PKGNAM[0]=NVIDIA-Linux-$NTARGET-$VERSION
+PKGNAM[1]=nvidia-settings-$VERSION
+PKGNAM[2]=nvidia-xconfig-$VERSION
+PKGNAM[3]=nvidia-modprobe-$VERSION
+
+rm -rf $PKG
+mkdir -p $TMP $PKG $OUTPUT
+cd $TMP
+
+rm -rf ${PKGNAM[*]}
+sh      $CWD/${PKGNAM[0]}.run --extract-only
+tar xvf $CWD/${PKGNAM[1]}.tar.bz2
+tar xvf $CWD/${PKGNAM[2]}.tar.bz2
+tar xvf $CWD/${PKGNAM[3]}.tar.bz2
+
+chown -R root:root ${PKGNAM[*]}
+find ${PKGNAM[*]} \
+ \( -perm 777 -o -perm 775 -o -perm 711 -o -perm 555 -o -perm 511 \) \
+ -exec chmod 755 {} \; -o \
+ \( -perm 666 -o -perm 664 -o -perm 600 -o -perm 444 -o -perm 440 -o -perm 400 \) \
+ -exec chmod 644 {} \;
+
+mkdir -p \
+  $PKG/etc/OpenCL/vendors \
+  $PKG/usr/bin \
+  $PKG/usr/doc/$PRGNAM-$VERSION \
+  $PKG/usr/lib${LIBDIRSUFFIX}/$PRGNAM/{tls,vdpau} \
+  $PKG/usr/lib${LIBDIRSUFFIX}/$PRGNAM/xorg/modules/{drivers,extensions} \
+  $PKG/usr/man/man1/ \
+  $PKG/usr/share/{applications,pixmaps}
+
+# nvidia-driver
+cd $TMP/${PKGNAM[0]}
+  install -m 755 \
+    nvidia-bug-report.sh \
+    nvidia-cuda-mps-server \
+    nvidia-cuda-mps-control \
+    nvidia-smi \
+   $PKG/usr/bin
+
+#   libGL.so.$VERSION \
+#   libGLX_nvidia.so.$VERSION \
+#   libEGL_nvidia.so.$VERSION \
+#   libGL.so.$VERSION \
+
+#   libGLdispatch.so.0 \
+#   libGLX.so.0 \
+#   libOpenGL.so.0 \
+  install -m 755 \
+    libGL.so.1.7.0 \
+    libGLX_nvidia.so.$VERSION \
+    libEGL_nvidia.so.$VERSION \
+    libOpenCL.so.1.0.0 \
+    libcuda.so.$VERSION \
+    libnvcuvid.so.$VERSION \
+    libnvidia-glvkspirv.so.$VERSION \
+    libnvidia-cfg.so.$VERSION \
+    libnvidia-compiler.so.$VERSION \
+    libnvidia-glcore.so.$VERSION \
+    libnvidia-ml.so.$VERSION \
+    libnvidia-tls.so.$VERSION \
+    libnvidia-gtk2.so.$VERSION \
+    libnvidia-gtk3.so.$VERSION \
+    libnvidia-glsi.so.$VERSION \
+    libnvidia-opencl.so.$VERSION \
+    libnvidia-ptxjitcompiler.so.$VERSION \
+   $PKG/usr/lib${LIBDIRSUFFIX}/$PRGNAM
+
+  install -m 755 \
+    libvdpau_nvidia.so.$VERSION \
+   $PKG/usr/lib${LIBDIRSUFFIX}/$PRGNAM/vdpau
+
+  install -m 755 \
+    libnvidia-tls.so.$VERSION \
+   $PKG/usr/lib${LIBDIRSUFFIX}/$PRGNAM/tls
+
+#    libGLX_nvidia.so.$VERSION \
+  install -m 755 \
+     libglxserver_nvidia.so.$VERSION \
+   $PKG/usr/lib${LIBDIRSUFFIX}/$PRGNAM/xorg/modules
+
+# libGLX_nvidia.so.$VERSION \
+  install -m 755 \
+    libglxserver_nvidia.so.$VERSION \
+   $PKG/usr/lib${LIBDIRSUFFIX}/$PRGNAM/xorg/modules/extensions
+
+  install -m 755 \
+    nvidia_drv.so \
+   $PKG/usr/lib${LIBDIRSUFFIX}/$PRGNAM/xorg/modules/drivers
+
+  install -m 644 nvidia.icd                     $PKG/etc/OpenCL/vendors
+  install -m 644 nvidia-smi.1.gz                $PKG/usr/man/man1/
+  install -m 644 nvidia-cuda-mps-control.1.gz   $PKG/usr/man/man1/
+
+  cd $PKG/usr/lib${LIBDIRSUFFIX}/$PRGNAM
+    ln -sf libnvidia-gtk3.so.$VERSION               libnvidia-gtk3.so
+    ln -sf libnvidia-gtk2.so.$VERSION               libnvidia-gtk2.so
+    ln -sf libnvidia-glcore.so.$VERSION             libnvidia-glcore.so
+    # N'est plus fournie a partir de 430.
+    # ln -sf libGL.so.$VERSION                        libGL.so.1
+    # Pour primus ou changer dans le script primusrun
+    # ln -sf libGL.so.1.7.0                           libGL.so.1
+    ln -sf libGLX_nvidia.so.$VERSION                   libGL.so.1
+    ln -sf libGL.so.1                               libGL.so.1.0.0
+    ln -sf libGL.so.1                               libGL.so
+    # ln -sf libOpenGL.so.0                           libOpenGL.so
+    # ln -sf libGLdispatch.so.0                       libGLdispatch.so
+    # ln -sf libGLX.so.0                              libGLX.so
+    ln -sf libGLX_nvidia.so.$VERSION                libGLX_nvidia.so.1
+    ln -sf libGLX_nvidia.so.1                       libGLX_nvidia.so.0
+    ln -sf libEGL_nvidia.so.$VERSION                libEGL_nvidia.so.1
+    ln -sf libEGL_nvidia.so.1                       libEGL_nvidia.so.0
+    ln -sf libOpenCL.so.1.0.0                       libOpenCL.so.1.0
+    ln -sf libOpenCL.so.1.0                         libOpenCL.so.1
+    ln -sf libOpenCL.so.1                           libOpenCL.so
+    ln -sf libcuda.so.$VERSION                      libcuda.so.1
+    ln -sf libcuda.so.1                             libcuda.so
+    ln -sf libnvcuvid.so.$VERSION                   libnvcuvid.so.1
+    ln -sf libnvcuvid.so.1                          libnvcuvid.so
+    ln -sf libnvidia-cfg.so.$VERSION                libnvidia-cfg.so.1
+    ln -sf libnvidia-cfg.so.1                       libnvidia-cfg.so
+    ln -sf libnvidia-glvkspirv.so.$VERSION          libnvidia-glvkspirv.so.1
+    ln -sf libnvidia-glvkspirv.so.1                 libnvidia-glvkspirv.so
+    ln -sf libnvidia-ml.so.$VERSION                 libnvidia-ml.so.1
+    ln -sf libnvidia-ml.so.1                        libnvidia-ml.so
+    ln -sf libnvidia-glsi.so.$VERSION               libnvidia-glsi.so.1
+    ln -sf libnvidia-glsi.so.1                      libnvidia-glsi.so
+    ln -sf libnvidia-opencl.so.$VERSION             libnvidia-opencl.so.1
+    ln -sf libnvidia-opencl.so.1                    libnvidia-opencl.so
+    ln -sf libnvidia-ptxjitcompiler.so.$VERSION     libnvidia-ptxjitcompiler.so.1
+    ln -sf libnvidia-ptxjitcompiler.so.1            libnvidia-ptxjitcompiler.so
+    ln -sf libnvidia-tls.so.$VERSION     libnvidia-tls.so.1
+    ln -sf libnvidia-tls.so.1            libnvidia-tls.so
+  cd -
+
+  cd $PKG/usr/lib${LIBDIRSUFFIX}/$PRGNAM/vdpau
+    ln -sf libvdpau_nvidia.so.$VERSION libvdpau_nvidia.so.1
+    ln -sf libvdpau_nvidia.so.1        libvdpau_nvidia.so
+  cd -
+
+  cd $PKG/usr/lib${LIBDIRSUFFIX}/$PRGNAM/xorg/modules/extensions
+    ln -sf libglxserver_nvidia.so.$VERSION libGLX.so
+    ln -sf libglxserver_nvidia.so.$VERSION libglx.so.1
+    ln -sf libglx.so.1 libglx.so
+    ln -sf libglxserver_nvidia.so.$VERSION libglxserver_nvidia.so.1
+    ln -sf libglxserver_nvidia.so.1 libglxserver_nvidia.so
+  cd -
+
+  cp -a \
+    LICENSE NVIDIA_Changelog README.txt html \
+   $PKG/usr/doc/$PRGNAM-$VERSION
+
+  if [ "$COMPAT32" = "yes" -a "$ARCH" = "x86_64" ]; then
+    mkdir -p $PKG/usr/lib/$PRGNAM/{tls,vdpau}
+
+
+    #      32/libGL.so.$VERSION \
+    #      32/libGLX_nvidia.so.$VERSION \
+    #      32/libEGL_nvidia.so.$VERSION \
+    #      32/libGLX.so.0 \
+    #      32/libGLdispatch.so.0 \
+    #      32/libOpenGL.so.0 \
+    install -m 755 \
+      32/libGL.so.1.7.0 \
+      32/libGLX_nvidia.so.$VERSION \
+      32/libEGL_nvidia.so.$VERSION \
+      32/libnvidia-tls.so.$VERSION \
+      32/libnvidia-glsi.so.$VERSION \
+      32/libOpenCL.so.1.0.0 \
+      32/libcuda.so.$VERSION \
+      32/libnvcuvid.so.$VERSION \
+      32/libnvidia-glvkspirv.so.$VERSION \
+      32/libnvidia-compiler.so.$VERSION \
+      32/libnvidia-glcore.so.$VERSION \
+      32/libnvidia-ml.so.$VERSION \
+      32/libnvidia-opencl.so.$VERSION \
+      32/libnvidia-ptxjitcompiler.so.$VERSION \
+     $PKG/usr/lib/$PRGNAM
+
+    install -m 755 \
+      32/libvdpau_nvidia.so.$VERSION \
+     $PKG/usr/lib/$PRGNAM/vdpau
+
+    install -m 755 \
+      32/libnvidia-tls.so.$VERSION \
+     $PKG/usr/lib/$PRGNAM/tls
+
+    cd $PKG/usr/lib/$PRGNAM
+    ln -sf libnvidia-glcore.so.$VERSION             libnvidia-glcore.so
+    # N'est plus fournie a partir de 430.
+    # ln -sf libGL.so.$VERSION                        libGL.so.1
+    # Pour primus ou changer dans le script primusrun
+    # ln -sf libGL.so.1.7.0                           libGL.so.1
+    ln -s libGLX_nvidia.so.$VERSION                   libGL.so.1
+    ln -sf libGL.so.1                               libGL.so
+    ln -sf libGL.so.1                               libGL.so.1.0.0
+    # ln -sf libOpenGL.so.0                           libOpenGL.so
+    # ln -sf libGLdispatch.so.0                       libGLdispatch.so
+    # ln -sf libGLX.so.0                              libglx.so
+    ln -sf libGLX_nvidia.so.$VERSION                libGLX_nvidia.so.1
+    ln -sf libGLX_nvidia.so.1                       libGLX_nvidia.so.0
+    ln -sf libEGL_nvidia.so.$VERSION                libEGL_nvidia.so.1
+    ln -sf libEGL_nvidia.so.1                       libEGL_nvidia.so.0
+    ln -sf libOpenCL.so.1.0.0                       libOpenCL.so.1.0
+    ln -sf libOpenCL.so.1.0                         libOpenCL.so.1
+    ln -sf libOpenCL.so.1                           libOpenCL.so
+    ln -sf libcuda.so.$VERSION                      libcuda.so.1
+    ln -sf libcuda.so.1                             libcuda.so
+    ln -sf libnvcuvid.so.$VERSION                   libnvcuvid.so.1
+    ln -sf libnvcuvid.so.1                          libnvcuvid.so
+    ln -sf libnvidia-glvkspirv.so.$VERSION          libnvidia-glvkspirv.so.1
+    ln -sf libnvidia-glvkspirv.so.1                 libnvidia-glvkspirv.so
+    ln -sf libnvidia-ml.so.$VERSION                 libnvidia-ml.so.1
+    ln -sf libnvidia-ml.so.1                        libnvidia-ml.so
+    ln -sf libnvidia-glsi.so.$VERSION               libnvidia-glsi.so.1
+    ln -sf libnvidia-glsi.so.1                      libnvidia-glsi.so
+    ln -sf libnvidia-opencl.so.$VERSION             libnvidia-opencl.so.1
+    ln -sf libnvidia-opencl.so.1                    libnvidia-opencl.so
+    ln -sf libnvidia-ptxjitcompiler.so.$VERSION     libnvidia-ptxjitcompiler.so.1
+    ln -sf libnvidia-ptxjitcompiler.so.1            libnvidia-ptxjitcompiler.so
+    ln -sf libnvidia-tls.so.$VERSION     libnvidia-tls.so.1
+    ln -sf libnvidia-tls.so.1            libnvidia-tls.so
+    cd -
+
+    cd $PKG/usr/lib/$PRGNAM/vdpau
+      ln -sf libvdpau_nvidia.so.$VERSION libvdpau_nvidia.so.1
+      ln -sf libvdpau_nvidia.so.1        libvdpau_nvidia.so
+    cd -
+  fi
+
+# nvidia-settings
+cd $TMP/${PKGNAM[1]}
+  cd src/libXNVCtrl
+    make clean
+    CFLAGS="$SLKCFLAGS" make
+  cd -
+
+  CFLAGS="$SLKCFLAGS" make
+  make install BINDIR=$PKG/usr/bin/ mandir=$PKG/usr/man/man1 LIBDIR=$PKG/usr/lib${LIBDIRSUFFIX}/$PRGNAM/
+
+  install -m 644 doc/nvidia-settings.desktop $PKG/usr/share/applications
+  install -m 644 doc/nvidia-settings.png     $PKG/usr/share/pixmaps
+
+  cp -a \
+    doc/FRAMELOCK.txt doc/NV-CONTROL-API.txt \
+   $PKG/usr/doc/$PRGNAM-$VERSION
+
+  cp COPYING $PKG/usr/doc/$PRGNAM-$VERSION/COPYING.nvidia-settings
+
+# nvidia-xconfig
+cd $TMP/${PKGNAM[2]}
+  CFLAGS="$SLKCFLAGS" make
+  make install BINDIR=$PKG/usr/bin/ MANDIR=$PKG/usr/man/man1
+
+  cp COPYING $PKG/usr/doc/$PRGNAM-$VERSION/COPYING.nvidia-xconfig
+
+# nvidia-modprobe
+cd $TMP/${PKGNAM[3]}
+  CFLAGS="$SLKCFLAGS" make
+  make install BINDIR=$PKG/usr/bin/ MANDIR=$PKG/usr/man/man1
+
+  cp COPYING $PKG/usr/doc/$PRGNAM-$VERSION/COPYING.nvidia-modprobe
+
+sed -i \
+  -e "s,__NVIDIA_SETTINGS_DESKTOP_CATEGORIES__,Application;Settings;," \
+  -e "s,__PIXMAP_PATH__/,," \
+  -e "s,__UTILS_PATH__/\(.*\),optirun \1 -c :8 ," \
+ $PKG/usr/share/applications/nvidia-settings.desktop
+
+cat $CWD/$PRGNAM.SlackBuild > $PKG/usr/doc/$PRGNAM-$VERSION/$PRGNAM.SlackBuild
+
+mkdir -p $PKG/install
+cat $CWD/slack-desc > $PKG/install/slack-desc
+
+cd $PKG
+/sbin/makepkg -l y -c n $OUTPUT/$PRGNAM-$VERSION-$ARCH-$BUILD$TAG.${PKGTYPE:-txz}
